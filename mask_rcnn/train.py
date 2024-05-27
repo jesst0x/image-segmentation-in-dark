@@ -8,7 +8,6 @@ from tqdm import tqdm
 import torchvision.transforms.v2 as transforms
 import torchvision.transforms.functional as F
 from torchvision.models.detection import maskrcnn_resnet50_fpn, MaskRCNN_ResNet50_FPN_Weights
-from torch.utils.data import DataLoader
 
 from torch_utils_lib.engine import train_one_epoch
 import torch_utils_lib.utils as torch_lib_utils
@@ -17,14 +16,16 @@ import utils
 
 parser = argparse.ArgumentParser()
 # Hyperparameters
-parser.add_argument('--epoch', default='2', help='Number of epoch')
-parser.add_argument('--lr', default='0.00005', help='Learning rate')
+parser.add_argument('--epoch', default='30', help='Number of epoch')
+parser.add_argument('--lr', default='0.0001', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
 
 # Directories
-parser.add_argument('--checkpoint_epoch', default='0', help='Checkpoint epoch')
+parser.add_argument('--checkpoint_epoch', default='2', help='Checkpoint epoch')
 parser.add_argument('--weight_path', default='', help='If specified, load the saved weight from this file')
-parser.add_argument('--checkpoint_dir', default='.', help='Directory to save the weigth')
+parser.add_argument('--checkpoint_dir', default='./checkpoints', help='Directory to save the weigth')
+parser.add_argument('--image_dir', default='../../coco_train5000_augmented', help='Path to synthetic low light image for training')
+parser.add_argument('--annotation', default='../Dataset/annotations/instances_train2017_subset5000.json', help='Path to COCO annotation json file')
 
 
 if __name__ == '__main__':
@@ -32,40 +33,19 @@ if __name__ == '__main__':
     checkpoint_dir = args.checkpoint_dir
     weight_path = args.weight_path
     checkpoint_every = int(args.checkpoint_epoch)
+    image_dir = args.image_dir
+    annotation_path = args.annotation
     # Hyperparameters
     num_epochs = int(args.epoch)
     learning_rate = float(args.lr)
     weight_decay = float(args.weight_decay)
-    # torch.cuda.empty_cache()
+
     print("**********************")
     print(torch.cuda.is_available())
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
     print("############Loading Datasets###########")
-    train_dataset = utils.load_train_data()
-
-    # indices = torch.randperm(len(train_dataset)).tolist()
-    # subset = torch.utils.data.Subset(train_dataset, indices[:200])
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=4,
-        shuffle=True,
-        collate_fn=torch_lib_utils.collate_fn,
-    )
-    
-    # val_augmented_dataset, val_original_dataset = utils.load_val_data()
-    # val_augmented_dataloader = DataLoader(
-    #     val_augmented_dataset,
-    #     batch_size=8,
-    #     shuffle=True,
-    #     collate_fn=torch_lib_utils.collate_fn,
-    # )
-    # val_original_dataloader = DataLoader(
-    #     val_original_dataset,
-    #     batch_size=8,
-    #     shuffle=True,
-    #     collate_fn=torch_lib_utils.collate_fn,
-    # )
+    train_dataset, train_dataloader = utils.load_data(image_dir, annotation_path, 4, True)
     print("############Datasets Loaded###########")
     
     # Mask R-CNN with ResNet50 backbone initialized with pre-trained weight.
@@ -84,7 +64,7 @@ if __name__ == '__main__':
     # Learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer,
-        step_size=3,
+        step_size=5,
         gamma=0.1
     )
     
