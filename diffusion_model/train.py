@@ -1,7 +1,11 @@
+import sys
+sys.path.append('/home/ubuntu/jesstoh/image-segmentation-in-dark/diffusion_model')
+
 import argparse
 import torch
 import os
 import json
+import time
 
 from torch.utils.data import DataLoader
 import kornia
@@ -12,10 +16,10 @@ from model.conditional_diffusion import ConditionalDiffusion
 
 parser = argparse.ArgumentParser()
 # Hyperparameters
-parser.add_argument('--epoch', default='10', help='Number of epoch')
+parser.add_argument('--epoch', default='10000', help='Number of epoch')
 parser.add_argument('--lr', default='0.00005', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
-parser.add_argument('--count', default='1000', help='Number of image to train')
+parser.add_argument('--batch_size', default='16', help='Batch size')
 
 # Directories
 parser.add_argument('--checkpoint_epoch', default='2', help='Checkpoint epoch')
@@ -25,6 +29,11 @@ parser.add_argument('--input_image_dir', default='../../coco_train5000', help='P
 parser.add_argument('--conditional_img_dir', default='../../coco_train5000_augmented', help='Path to synthetic low light image as condition')
 parser.add_argument('--annotation', default='../Dataset/annotations/coco_ids_train_5000.json', help='Path to file list')
 
+def format_duration(duration):
+    hour = duration // (60 * 60)
+    min = (duration % (60 * 60)) // 60
+    second = duration % 60
+    return f"{hour}: {min}: {second}"
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -38,7 +47,7 @@ if __name__ == '__main__':
     num_epochs = int(args.epoch)
     learning_rate = float(args.lr)
     weight_decay = float(args.weight_decay)
-    count = int(args.count)
+    batch_size = int(args.batch_size)
 
     print("**********************")
     print(torch.cuda.is_available())
@@ -52,7 +61,7 @@ if __name__ == '__main__':
     train_dataset = ConditionalDiffusionDataset(input_img_dir, condition_img_dir, annotation_path, transform)
     train_loader = DataLoader(
         train_dataset,
-        batch_size=8,
+        batch_size=batch_size,
         shuffle=True,
     )
     
@@ -70,15 +79,18 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
     loss_summary = []
     diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{0}.pth"))
+    start = time.time()
     print("############Training###########")
     for epoch in range(num_epochs):
         losses = []
         for step, batch in enumerate(train_loader):
             optimizer.zero_grad()
             (x, c), _ = batch
+            x = x.to(device)
+            c = c.to(device)
             loss = diffusion_model(x, c)
             if step % 100 == 0:
-                print(f"Epoch {epoch + 1} Step {step}/{count} Loss: {loss.item()}")
+                print(f"Epoch {epoch + 1} Step {batch_size * step}/{5000} Loss: {loss.item()}")
                 losses.append(loss.item())
             loss.backward()
             optimizer.step()
@@ -88,6 +100,7 @@ if __name__ == '__main__':
                 # Checkpoint
                 diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{epoch + 1}.pth"))
                 json.dump({"loss": loss_summary}, open(os.path.join(checkpoint_dir, "loss.json"), 'w'))
-        
+        duration = time.time() - start
+        print(f"Time elapsed: {format_duration(duration)}")
     # Save weight at the end of training for evaluation later
     diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{num_epochs}.pth"))

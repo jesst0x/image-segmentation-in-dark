@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/ubuntu/jesstoh/image-segmentation-in-dark/diffusion_model/model')
+
 from tqdm import tqdm
 
 import torch
@@ -5,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import noise_schedule
-from unet import *
+import unet
 
 class ConditionalDiffusion(nn.Module):
     def __init__(
@@ -24,7 +27,7 @@ class ConditionalDiffusion(nn.Module):
         self.sampler = sampler
         in_channel = generated_channel + condition_channel # Concat conditin to input image channels
         self.device = device
-        self.model = Unet(in_channel, generated_channel).to(device)
+        self.model = unet.Unet(in_channel, generated_channel).to(device)
         self.set_up_noise_schdule()
         
     def set_up_noise_schdule(self):

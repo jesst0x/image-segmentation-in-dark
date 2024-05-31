@@ -1,0 +1,3 @@
+# Set this up to keep folder structure, as not to commit large checkpoint files.
+*
+!.gitignore
