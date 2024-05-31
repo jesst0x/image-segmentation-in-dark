@@ -17,14 +17,14 @@ from model.conditional_diffusion import ConditionalDiffusion
 parser = argparse.ArgumentParser()
 # Hyperparameters
 parser.add_argument('--epoch', default='10000', help='Number of epoch')
-parser.add_argument('--lr', default='0.00005', help='Learning rate')
+parser.add_argument('--lr', default='0.00002', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
 parser.add_argument('--batch_size', default='16', help='Batch size')
 
 # Directories
-parser.add_argument('--checkpoint_epoch', default='2', help='Checkpoint epoch')
+parser.add_argument('--checkpoint_epoch', default='5', help='Checkpoint epoch')
 parser.add_argument('--weight_path', default='', help='If specified, load the saved weight from this file')
-parser.add_argument('--checkpoint_dir', default='./checkpoints', help='Directory to save the weigth')
+parser.add_argument('--checkpoint_dir', default='./checkpoints/256_256_lr2e5', help='Directory to save the weigth')
 parser.add_argument('--input_image_dir', default='../../coco_train5000', help='Path to natural light image for training')
 parser.add_argument('--conditional_img_dir', default='../../coco_train5000_augmented', help='Path to synthetic low light image as condition')
 parser.add_argument('--annotation', default='../Dataset/annotations/coco_ids_train_5000.json', help='Path to file list')
@@ -34,6 +34,9 @@ def format_duration(duration):
     min = (duration % (60 * 60)) // 60
     second = duration % 60
     return f"{hour}: {min}: {second}"
+
+def get_parameter_count(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -56,7 +59,7 @@ if __name__ == '__main__':
     print("############Loading Datasets###########")
     transform = [
         kornia.augmentation.RandomCrop((256, 256)),
-        kornia.augmentation.Resize((128, 128), antialias=True),
+        # kornia.augmentation.Resize((128, 128), antialias=True),
     ]
     train_dataset = ConditionalDiffusionDataset(input_img_dir, condition_img_dir, annotation_path, transform)
     train_loader = DataLoader(
@@ -73,10 +76,11 @@ if __name__ == '__main__':
     # Load from checkpoint
     if weight_path != "":
         diffusion_model.load_checkpoint(weight_path)
-    
     # Optimizer
     params = [p for p in diffusion_model.get_model_parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
+    param_count = sum(p.numel() for p in params)
+    print(f"Number of model parameters: {get_parameter_count(diffusion_model)}")
     loss_summary = []
     diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{0}.pth"))
     start = time.time()
