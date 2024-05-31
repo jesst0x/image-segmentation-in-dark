@@ -1,7 +1,10 @@
+einops==0.8.0
+kornia==0.7.2
 numpy==1.26.4
 Pillow==10.3.0
+pycocotools==2.0.7
 skimage==0.0
 torch==2.3.0
 torcheval==0.0.7
 torchvision==0.18.0
-tqdm==4.66.4
+tqdm==4.64.1
