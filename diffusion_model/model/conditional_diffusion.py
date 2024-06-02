@@ -12,6 +12,7 @@ class ConditionalDiffusion(nn.Module):
         self,
         generated_channel=3, # Channels of noised / generated image
         condition_channel=3, # Condition to embed, in our case 3 channels of synthetic low light image.
+        schedule="linear",
         timesteps=1000,
         sampler=None,
         device=torch.device("cuda:0"),
@@ -25,25 +26,26 @@ class ConditionalDiffusion(nn.Module):
         in_channel = generated_channel + condition_channel # Concat conditin to input image channels
         self.device = device
         self.model = unet.Unet(in_channel, generated_channel).to(device)
+        self.schedule = schedule
         self.set_up_noise_schdule()
         
     def set_up_noise_schdule(self):
-        # define beta schedule
-        self.betas = noise_schedule.cosine_beta_schedule(self.timesteps)
+        # Beta noise schedule
+        self.betas = noise_schedule.get_beta_schedule(self.schedule, self.timesteps)
 
-        # define alphas
+        # Alphas
         alphas = 1. - self.betas
         alphas_cumprod = torch.cumprod(alphas, axis=0)
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
         self.sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
 
-        # calculations for diffusion q(x_t | x_{t-1}) and others
+        # q(x_t | x_{t-1})
         self.sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
 
-        # calculations for posterior q(x_{t-1} | x_t, x_0)
+        # q(x_{t-1} | x_t, x_0)
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
-        
+                
     @torch.no_grad()
     def q_sample(self, x_0, t, noise=None):
         """
