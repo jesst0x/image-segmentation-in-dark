@@ -1,6 +1,3 @@
-import sys
-sys.path.append('/home/ubuntu/jesstoh/image-segmentation-in-dark/diffusion_model/model')
-
 from tqdm import tqdm
 
 import torch

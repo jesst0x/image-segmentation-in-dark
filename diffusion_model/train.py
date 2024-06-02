@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/ubuntu/jesstoh/image-segmentation-in-dark/diffusion_model')
+sys.path.append('./model')
 
 import argparse
 import torch
@@ -12,31 +12,22 @@ import kornia
 
 from data.custom_dataset import ConditionalDiffusionDataset
 from model.conditional_diffusion import ConditionalDiffusion
-
+import util
 
 parser = argparse.ArgumentParser()
 # Hyperparameters
 parser.add_argument('--epoch', default='10000', help='Number of epoch')
-parser.add_argument('--lr', default='0.00002', help='Learning rate')
+parser.add_argument('--lr', default='0.00001', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
 parser.add_argument('--batch_size', default='16', help='Batch size')
 
 # Directories
 parser.add_argument('--checkpoint_epoch', default='5', help='Checkpoint epoch')
-parser.add_argument('--weight_path', default='', help='If specified, load the saved weight from this file')
+parser.add_argument('--weight_path', default='./checkpoints/256_256_lr2e5/model_path_35.pth', help='If specified, load the saved weight from this file')
 parser.add_argument('--checkpoint_dir', default='./checkpoints/256_256_lr2e5', help='Directory to save the weigth')
 parser.add_argument('--input_image_dir', default='../../coco_train5000', help='Path to natural light image for training')
 parser.add_argument('--conditional_img_dir', default='../../coco_train5000_augmented', help='Path to synthetic low light image as condition')
 parser.add_argument('--annotation', default='../Dataset/annotations/coco_ids_train_5000.json', help='Path to file list')
-
-def format_duration(duration):
-    hour = duration // (60 * 60)
-    min = (duration % (60 * 60)) // 60
-    second = duration % 60
-    return f"{hour}: {min}: {second}"
-
-def get_parameter_count(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -79,13 +70,13 @@ if __name__ == '__main__':
     # Optimizer
     params = [p for p in diffusion_model.get_model_parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
-    param_count = sum(p.numel() for p in params)
-    print(f"Number of model parameters: {get_parameter_count(diffusion_model)}")
+
+    print(f"Number of model parameters: {util.get_parameter_count(diffusion_model)}")
     loss_summary = []
-    diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{0}.pth"))
+    # diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{0}.pth"))
     start = time.time()
     print("############Training###########")
-    for epoch in range(num_epochs):
+    for epoch in range(35, 35 + num_epochs):
         losses = []
         for step, batch in enumerate(train_loader):
             optimizer.zero_grad()
@@ -93,7 +84,7 @@ if __name__ == '__main__':
             x = x.to(device)
             c = c.to(device)
             loss = diffusion_model(x, c)
-            if step % 100 == 0:
+            if step % 10 == 0:
                 print(f"Epoch {epoch + 1} Step {batch_size * step}/{5000} Loss: {loss.item()}")
                 losses.append(loss.item())
             loss.backward()
@@ -103,8 +94,8 @@ if __name__ == '__main__':
             if (epoch + 1) % checkpoint_every == 0:
                 # Checkpoint
                 diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{epoch + 1}.pth"))
-                json.dump({"loss": loss_summary}, open(os.path.join(checkpoint_dir, "loss.json"), 'w'))
+                json.dump({"loss": loss_summary}, open(os.path.join(checkpoint_dir, "loss2.json"), 'w'))
         duration = time.time() - start
-        print(f"Time elapsed: {format_duration(duration)}")
+        print(f"Time elapsed: {util.format_duration(duration)}")
     # Save weight at the end of training for evaluation later
     diffusion_model.save_checkpoint(os.path.join(checkpoint_dir, f"model_path_{num_epochs}.pth"))

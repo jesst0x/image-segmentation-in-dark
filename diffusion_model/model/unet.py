@@ -1,6 +1,3 @@
-import sys
-sys.path.append('/home/ubuntu/jesstoh/image-segmentation-in-dark/diffusion_model/model')
-
 import torch
 import torch.nn as nn
 from blocks import *
