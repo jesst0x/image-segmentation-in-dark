@@ -13,7 +13,7 @@ from skimage.util import random_noise
 from torcheval.metrics.functional import peak_signal_noise_ratio
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input_dir', default='../../coco_train5000', help='Directory with raw dataset')
+parser.add_argument('--input_dir', default='../../coco_test500_640_480', help='Directory with raw dataset')
 
 def adjust_gamma(image_path, gamma=[5, 10]):
   img = Image.open(image_path)
@@ -40,6 +40,8 @@ if __name__ == '__main__':
     random.seed(23)
     
     darkened_dir = input_dir  + '_darkened'
+    if not os.path.exists(darkened_dir):
+      os.makedirs(darkened_dir)
     darkened_summary = {}
     files = os.listdir(input_dir)
     print("########Darken images#####")
@@ -48,10 +50,12 @@ if __name__ == '__main__':
         darkened_img = v2.functional.to_pil_image(darkened_img_tensor)
         darkened_img.save(os.path.join(darkened_dir, file))
         darkened_summary[file] = gamma
-    json.dump(darkened_summary, open('coco_darkened_summary_train_500.json', 'w'))
+    json.dump(darkened_summary, open(f'{input_dir}_darkened_summary.json', 'w'))
     
     print("#####Add Gaussian Noise#####")
     augmented_dir = input_dir  + '_augmented'
+    if not os.path.exists(augmented_dir):
+      os.makedirs(augmented_dir)
     files = os.listdir(darkened_dir)
     for f in tqdm(files):   
         noisy_img = add_gaussian_noise(os.path.join(darkened_dir, f), [0.001, 0.01])
@@ -76,5 +80,5 @@ if __name__ == '__main__':
       
     snr_summary = {'mean': float(np.mean(augmented_snr).squeeze()), 'max': float(max(augmented_snr)), 'min': float(min(augmented_snr)), 'std': float(np.std(augmented_snr).squeeze())}
     print(snr_summary)
-    json.dump(snr_summary, open('coco_augmented_val_train_snr.json', 'w'))
+    json.dump(snr_summary, open(f'{input_dir}_augmented_snr.json', 'w'))
         

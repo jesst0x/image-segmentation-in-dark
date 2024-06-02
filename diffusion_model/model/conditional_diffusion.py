@@ -17,7 +17,7 @@ class ConditionalDiffusion(nn.Module):
         condition_channel=3, # Condition to embed, in our case 3 channels of synthetic low light image.
         timesteps=1000,
         sampler=None,
-        device="cuda",
+        device=torch.device("cuda:0"),
     ):
         super().__init__()
         self.generated_channel = generated_channel
@@ -122,8 +122,8 @@ class ConditionalDiffusion(nn.Module):
             x_t - betas_t * self.model(model_input, t) / sqrt_one_minus_alphas_cumprod_t
         )
         posterior_variance_t = extract(self.posterior_variance, t, x_t.shape)
-
-        if t == 0:
+        
+        if t[0].item() == 0:
             return model_mean
         else:
             noise = torch.randn_like(x_t)
@@ -133,8 +133,8 @@ class ConditionalDiffusion(nn.Module):
     @torch.no_grad()
     def p_sample_progressive(self, condition):
         """
-        Inference: Full cycel from timestep T to 0, starting from pure noise. 
-        Condition will guide image generated is related to synthetic low light image.
+        Inference: Full cycle from timestep T to 0, starting from pure noise. 
+        Condition will guide image generated to be related to synthetic low light image.
         """
         # Sample image from pure noise at timestep T to timestep 0
         # shape: (B, C, H, W)
