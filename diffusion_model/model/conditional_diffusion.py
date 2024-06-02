@@ -150,8 +150,8 @@ class ConditionalDiffusion(nn.Module):
             t = torch.full((b,), i, device=device, dtype=torch.long)
             x = self.p_sample(x, condition, t)
             # Make the image within range of [-1, 1]
-            x = torch.clamp(x, -1.0, 1.0)
-            images.append(x.detach().cpu())
+            # x = torch.clamp(x, -1.0, 1.0)
+            images.append((torch.clamp(x, -1.0, 1.0)).detach().cpu())
         return images
     
     def load_checkpoint(self, weight_path):
