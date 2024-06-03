@@ -1,7 +1,7 @@
 import os
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import torchvision.utils.save_image
+import torchvision.utils
 
 def format_duration(duration):
     hour = duration // (60 * 60)
@@ -42,7 +42,7 @@ def plot(generated_images, ground_truth, condition, steps, save=False, save_path
         plt.savefig(save_path, bbox_inches='tight')
     # plt.tight_layout()
 
-def save_image(images, labels, dir):
+def save_images(images, labels, dir):
     b = images.shape[0]
     for i in tqdm(range(b)):
         img = (images[i] + 1) / 2

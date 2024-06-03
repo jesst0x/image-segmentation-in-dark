@@ -14,6 +14,7 @@ class ConditionalDiffusion(nn.Module):
         condition_channel=3, # Condition to embed, in our case 3 channels of synthetic low light image.
         schedule="linear",
         timesteps=1000,
+        inference_step = 1000,
         sampler=None,
         device=torch.device("cuda:0"),
     ):
@@ -28,6 +29,9 @@ class ConditionalDiffusion(nn.Module):
         self.model = unet.Unet(in_channel, generated_channel).to(device)
         self.schedule = schedule
         self.set_up_noise_schdule()
+        self.inference_step = inference_step
+        # To Implement sampler
+        self.sampler = None
         
     def set_up_noise_schdule(self):
         # Beta noise schedule
@@ -38,7 +42,6 @@ class ConditionalDiffusion(nn.Module):
         alphas_cumprod = torch.cumprod(alphas, axis=0)
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
         self.sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
-
         # q(x_t | x_{t-1})
         self.sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
@@ -98,7 +101,7 @@ class ConditionalDiffusion(nn.Module):
     
     
     @torch.no_grad()
-    def p_sample(self, x_t, condition, t):
+    def p_sample(self, x_t, z, t):
         """
         Inference: Generate image x at timestep t-1, by predicting noise
         injected resulting in x at timestep t.
@@ -116,9 +119,8 @@ class ConditionalDiffusion(nn.Module):
         sqrt_recip_alphas_t = extract(self.sqrt_recip_alphas, t, x_t.shape)
 
         # Refer to sampling equation in report
-        model_input=torch.cat([x_t, condition], 1).to(x_t.device)
         model_mean = sqrt_recip_alphas_t * (
-            x_t - betas_t * self.model(model_input, t) / sqrt_one_minus_alphas_cumprod_t
+            x_t - betas_t * z / sqrt_one_minus_alphas_cumprod_t
         )
         posterior_variance_t = extract(self.posterior_variance, t, x_t.shape)
         
@@ -146,9 +148,15 @@ class ConditionalDiffusion(nn.Module):
 
         images = []
         # Backward denoise with the model to produce image at timestep 0.
-        for i in tqdm(range(0, self.timesteps)[::-1]):
+        for i in tqdm(range(0, self.inference_step)[::-1]):
             t = torch.full((b,), i, device=device, dtype=torch.long)
-            x = self.p_sample(x, condition, t)
+            model_input=torch.cat([x, condition], 1).to(device)
+            # Predicted noise.
+            z = self.model(model_input, t)
+            if self.sampler != None:
+                x = self.sampler(x, z, t)
+            else:
+                x = self.p_sample(x, z, t)
             # Make the image within range of [-1, 1]
             # x = torch.clamp(x, -1.0, 1.0)
             images.append((torch.clamp(x, -1.0, 1.0)).detach().cpu())
