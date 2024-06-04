@@ -1,5 +1,6 @@
 import os
 from tqdm import tqdm
+
 import matplotlib.pyplot as plt
 import torchvision.utils
 
@@ -12,16 +13,16 @@ def format_duration(duration):
 def get_parameter_count(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def plot(generated_images, ground_truth, condition, steps, save=False, save_path=""):
+def plot(generated_images, ground_truth, condition, save=False, save_path=""):
     nrows = ground_truth.shape[0] #batch size
-    ncols = len(steps) + 2
+    ncols = len(generated_images) + 2
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(ncols, nrows), squeeze=True)
     fig.subplots_adjust(wspace=0, hspace=0)
 
     for row in range(nrows):
-        for col, t in enumerate(steps):
+        for col, img in enumerate(generated_images):
             ax = axes[row, col]
-            img = (generated_images[t][row] + 1) / 2 # Convert from [-1, 1] to [0, 1]
+            img = (img[row] + 1) / 2 # Convert from [-1, 1] to [0, 1]
             ax.imshow(img.permute(1,2,0))
             ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 

@@ -132,7 +132,7 @@ class ConditionalDiffusion(nn.Module):
         
         
     @torch.no_grad()
-    def p_sample_progressive(self, condition):
+    def p_sample_progressive(self, condition, save_steps=[0]):
         """
         Inference: Full cycle from timestep T to 0, starting from pure noise. 
         Condition will guide image generated to be related to synthetic low light image.
@@ -159,7 +159,8 @@ class ConditionalDiffusion(nn.Module):
                 x = self.p_sample(x, z, t)
             # Make the image within range of [-1, 1]
             # x = torch.clamp(x, -1.0, 1.0)
-            images.append((torch.clamp(x, -1.0, 1.0)).detach().cpu())
+            if i in save_steps:
+                images.append((torch.clamp(x, -1.0, 1.0)).detach().cpu())
         return images
     
     def load_checkpoint(self, weight_path):
