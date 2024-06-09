@@ -17,13 +17,17 @@ import utils
 parser = argparse.ArgumentParser()
 # Hyperparameters
 parser.add_argument('--epoch', default='30', help='Number of epoch')
+parser.add_argument('--trainable_backbone_layers', default='5', help='Last trainable layers of ResNet50 backbone')
 parser.add_argument('--lr', default='0.0001', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
+parser.add_argument('--batch_size', default='64', help='Batch size')
+parser.add_argument('--lr_step_size', default='50', help='Learning rate scheduler step size')
+parser.add_argument('--lr_gamma', default='0.9', help='Learning rate decay')
 
 # Directories
 parser.add_argument('--checkpoint_epoch', default='2', help='Checkpoint epoch')
 parser.add_argument('--weight_path', default='', help='If specified, load the saved weight from this file')
-parser.add_argument('--checkpoint_dir', default='./checkpoints', help='Directory to save the weigth')
+parser.add_argument('--checkpoint_dir', default='./checkpoints', help='Directory to save the weight')
 parser.add_argument('--image_dir', default='../../coco_train5000_augmented', help='Path to synthetic low light image for training')
 parser.add_argument('--annotation', default='../Dataset/annotations/instances_train2017_subset5000.json', help='Path to COCO annotation json file')
 
@@ -39,19 +43,23 @@ if __name__ == '__main__':
     num_epochs = int(args.epoch)
     learning_rate = float(args.lr)
     weight_decay = float(args.weight_decay)
+    batch_size = int(args.batch_size)
+    step_size = int(args.lr_step_size)
+    gamma = int(args.lr_gamma)
+    trainable_backbone_layers = int(args.trainable_backbone_layers)
 
     print("**********************")
     print(torch.cuda.is_available())
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
     print("############Loading Datasets###########")
-    train_dataset, train_dataloader = utils.load_data(image_dir, annotation_path, 4, True)
+    train_dataset, train_dataloader = utils.load_data(image_dir, annotation_path, batch_size, True)
     print("############Datasets Loaded###########")
     
     # Mask R-CNN with ResNet50 backbone initialized with pre-trained weight.
     print("############Building Model###########")
     weights = MaskRCNN_ResNet50_FPN_Weights.DEFAULT
-    model = maskrcnn_resnet50_fpn(weights=weights, progress=False, trainable_backbone_layers=1)
+    model = maskrcnn_resnet50_fpn(weights=weights, progress=False, trainable_backbone_layers=trainable_backbone_layers)
     # Load from checkpoint
     if weight_path != "":
         model.load_state_dict(torch.load(weight_path))
@@ -64,8 +72,8 @@ if __name__ == '__main__':
     # Learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer,
-        step_size=5,
-        gamma=0.1
+        step_size=step_size,
+        gamma=gamma
     )
     
     print("############Training###########")

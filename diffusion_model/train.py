@@ -21,6 +21,7 @@ parser.add_argument('--lr', default='0.0001', help='Learning rate')
 parser.add_argument('--weight_decay', default='0', help='L2 regularization')
 parser.add_argument('--batch_size', default='64', help='Batch size')
 parser.add_argument('--lr_step_size', default='50', help='Learning rate scheduler step size')
+parser.add_argument('--lr_gamma', default='0.9', help='Learning rate decay')
 
 # Directories
 parser.add_argument('--checkpoint_epoch', default='5', help='Checkpoint epoch')
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     weight_decay = float(args.weight_decay)
     batch_size = int(args.batch_size)
     step_size = int(args.lr_step_size)
+    gamma = int(args.lr_gamma)
 
     save_steps = [i for i in range(0, 1000, 50)]
     save_steps.append(999)
@@ -77,7 +79,7 @@ if __name__ == '__main__':
     # Optimizer
     params = [p for p in diffusion_model.get_model_parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(params, lr=learning_rate, weight_decay=weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.9)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
     print(f"Number of model parameters: {util.get_parameter_count(diffusion_model)}")
     loss_summary = []

@@ -16,7 +16,7 @@ import util
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default='4', help='Batch size')
-parser.add_argument('--inference_step', default='1000', help='Number of steps to sample for DDIM')
+# parser.add_argument('--inference_step', default='1000', help='Number of steps to sample for DDIM')
 parser.add_argument('--weight_path', default='./checkpoints/128_128_linear_darkened/model_path_520.pth', help='If specified, load the saved weight from this file')
 parser.add_argument('--input_image_dir', default='../../lis_normal_test500_rgb', help='Path to natural light image for training')
 parser.add_argument('--conditional_img_dir', default='../../lis_low_light_test500_rgb', help='Path to synthetic low light image as condition')
@@ -31,7 +31,8 @@ if __name__ == '__main__':
     condition_img_dir = args.conditional_img_dir
     output_img_dir = args.output_img_dir
     batch_size = int(args.batch_size)
-    inference_step = int(args.inference_step)
+    # TODO: Implement DDIM in future
+    # inference_step = int(args.inference_step)
     annotation_path = args.annotation
     # Sampling to save as image
     save_steps = [i for i in range(0, 1000, 50)]

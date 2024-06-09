@@ -12,11 +12,12 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--count', default='10', help='Number of images to draw segmentation mask for analysis')
+parser.add_argument('--batch_size', default='4', help='Batch size')
 
 # Directories
 parser.add_argument('--weight_path', default='./checkpoints/model_path_20.pth', help='If specified, load the saved weight from this file')
-parser.add_argument('--original_images', default='../../coco_val500', help='Path to COCO unaugmented images')
-parser.add_argument('--augmented_images', default='../../coco_val500_augmented', help='Path to synthetic low light image')
+parser.add_argument('--normal_light_img_dir', default='../../coco_val500', help='Path to normal light images')
+parser.add_argument('--low_light_img_dir', default='../../coco_val500_augmented', help='Path to low light image')
 parser.add_argument('--annotation', default='../Dataset/annotations/instances_val2017_subset500.json', help='Path to COCO annotation json file')
 parser.add_argument('--save_image_dir', default='outputs/epoch_20', help='Path to save images with predicted segmentation mask')
 
@@ -24,17 +25,18 @@ SUFFIXES = ["trained_original", "trained_synthetic", "pretrained_original", "pre
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    original_image_dir = args.original_images
-    augmented_image_dir = args.augmented_images
+    normal_image_dir = args.normal_light_img_dir
+    low_light_image_dir = args.low_light_img_dir
     annotation = args.annotation
     weight_path = args.weight_path
     save_image_dir = args.save_image_dir
     count = int(args.count)
+    batch_size = int(args.batch_size)
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     
     print("################# Loading Data ###############")
-    original_dataset, original_loader = utils.load_data(original_image_dir, annotation, 4, False)
-    augmented_dataset, augmented_loader = utils.load_data(augmented_image_dir, annotation, 4, False)
+    original_dataset, original_loader = utils.load_data(normal_image_dir, annotation, batch_size, False)
+    augmented_dataset, augmented_loader = utils.load_data(low_light_image_dir, annotation, batch_size, False)
     
     # Mask R-CNN with ResNet50 backbone loaded with weight from checkpoint
     print("############ Loading Model###########")
