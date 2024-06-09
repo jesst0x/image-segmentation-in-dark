@@ -107,6 +107,9 @@ This outputs AP values. Images with drawn predicted segmentation mask are saved 
 Optional arguments
 - `count`: Number of images to draw segmentation mask for qualitative analysis
 
+## Other
+Folder `./notebook` contains notebooks files used for fast experiments and visualization of small dataset. Full implementation of models are in other folders respective model names.
+
 
 ## Acknowledgement
 
